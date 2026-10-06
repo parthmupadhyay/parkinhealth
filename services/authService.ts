@@ -5,25 +5,16 @@ export const authService = {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          username,
+          display_name: displayName,
+        },
+      },
     });
 
     if (error) {
       throw error;
-    }
-
-    if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: data.user.id,
-        username,
-        display_name: displayName,
-        daily_step_goal: 10000,
-        daily_calorie_goal: 500,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      });
-
-      if (profileError) {
-        throw profileError;
-      }
     }
 
     return data;

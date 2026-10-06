@@ -1,44 +1,99 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { currentUser } from '../../lib/mockData';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useAuth } from '../../context/AuthContext';
+import { authService } from '../../services/authService';
+import { supabase } from '../../lib/supabase';
 
 export default function ProfileScreen() {
+  const { profile, refreshProfile } = useAuth();
+  
+  const [stepGoal, setStepGoal] = useState('');
+  const [calorieGoal, setCalorieGoal] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  useEffect(() => {
+    if (profile) {
+      setStepGoal(profile.daily_step_goal.toString());
+      setCalorieGoal(profile.daily_calorie_goal.toString());
+    }
+  }, [profile]);
+
+  if (!profile) return null;
+
+  const handleUpdateGoals = async () => {
+    setSaving(true);
+    setMsg('');
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          daily_step_goal: parseInt(stepGoal, 10) || 10000,
+          daily_calorie_goal: parseInt(calorieGoal, 10) || 500,
+        })
+        .eq('id', profile.id);
+
+      if (error) throw error;
+      setMsg('Goals updated successfully!');
+      await refreshProfile();
+    } catch (error: any) {
+      setMsg(`Error: ${error.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await authService.signOut();
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <View style={styles.avatarPlaceholder}>
           <Text style={styles.avatarText}>
-            {currentUser.displayName.charAt(0)}
+            {(profile.display_name || profile.username || '?').charAt(0).toUpperCase()}
           </Text>
         </View>
-        <Text style={styles.name}>{currentUser.displayName}</Text>
-        <Text style={styles.username}>@{currentUser.username}</Text>
+        <Text style={styles.name}>{profile.display_name || profile.username}</Text>
+        <Text style={styles.username}>@{profile.username}</Text>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Daily Goals</Text>
+        <Text style={styles.sectionTitle}>Update Goals</Text>
         
-        <View style={styles.settingRow}>
-          <Text style={styles.settingLabel}>Step Goal</Text>
-          <Text style={styles.settingValue}>{currentUser.dailyStepGoal.toLocaleString()}</Text>
+        {msg ? <Text style={styles.msgText}>{msg}</Text> : null}
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Daily Step Goal</Text>
+          <TextInput
+            style={styles.input}
+            value={stepGoal}
+            onChangeText={setStepGoal}
+            keyboardType="number-pad"
+          />
         </View>
-        
-        <View style={styles.settingRow}>
-          <Text style={styles.settingLabel}>Calorie Goal</Text>
-          <Text style={styles.settingValue}>{currentUser.dailyCalorieGoal} kcal</Text>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Daily Calorie Goal</Text>
+          <TextInput
+            style={styles.input}
+            value={calorieGoal}
+            onChangeText={setCalorieGoal}
+            keyboardType="number-pad"
+          />
         </View>
+
+        <TouchableOpacity style={styles.button} onPress={handleUpdateGoals} disabled={saving}>
+          {saving ? <ActivityIndicator color="#000" /> : <Text style={styles.buttonText}>Save Goals</Text>}
+        </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
-        <View style={styles.settingRow}>
-          <Text style={styles.settingLabel}>Edit Profile</Text>
-          <Text style={styles.chevron}>›</Text>
-        </View>
-        <View style={styles.settingRow}>
-          <Text style={styles.settingLabel}>Sign Out</Text>
-          <Text style={styles.chevron}>›</Text>
-        </View>
+        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+          <Text style={styles.signOutText}>Sign Out</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -94,24 +149,46 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textTransform: 'uppercase',
   },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333333',
+  inputGroup: {
+    marginBottom: 16,
   },
-  settingLabel: {
-    color: '#ffffff',
-    fontSize: 16,
-  },
-  settingValue: {
+  label: {
     color: '#aaaaaa',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#333',
+    color: '#fff',
+    borderRadius: 8,
+    padding: 12,
+  },
+  button: {
+    backgroundColor: '#00FFcc',
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  buttonText: {
+    color: '#000',
+    fontWeight: 'bold',
     fontSize: 16,
   },
-  chevron: {
-    color: '#555555',
-    fontSize: 20,
+  signOutButton: {
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ff4444',
+    alignItems: 'center',
+  },
+  signOutText: {
+    color: '#ff4444',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  msgText: {
+    color: '#00FFcc',
+    marginBottom: 12,
+    textAlign: 'center',
   },
 });
