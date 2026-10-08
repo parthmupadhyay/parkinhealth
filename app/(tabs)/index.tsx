@@ -1,79 +1,21 @@
-<<<<<<< Updated upstream
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
-import StepRing from '../../components/StepRing';
-import StatCard from '../../components/StatCard';
-import { useAuth } from '../../context/AuthContext';
-import { metricsService } from '../../services/metricsService';
-import { supabase } from '../../lib/supabase';
-import { DailyMetric } from '../../types';
-
-export default function HomeScreen() {
-  const { profile } = useAuth();
-  const [metric, setMetric] = useState<DailyMetric | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-
-  const fetchTodayMetric = async () => {
-    if (!profile) return;
-    setLoading(true);
-    const localDate = new Date().toLocaleDateString('en-CA');
-    const { data, error } = await supabase
-      .from('daily_metrics')
-      .select('*')
-      .eq('user_id', profile.id)
-      .eq('local_date', localDate)
-      .single();
-
-    if (!error && data) {
-      setMetric(data as DailyMetric);
-    } else {
-      setMetric(null);
-=======
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import StepRing from '../../components/StepRing';
 import StatCard from '../../components/StatCard';
 import { healthService } from '../../services/health/healthService';
 import { HealthSummary, Profile } from '../../types';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { useFocusEffect } from 'expo-router';
 
 export default function HomeScreen() {
-  const { user } = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const { session, profile } = useAuth();
   const [summary, setSummary] = useState<HealthSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [healthAvailable, setHealthAvailable] = useState(false);
 
-  const fetchProfile = async () => {
-    if (!user) return;
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      if (!error && data) {
-        setProfile(data);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      fetchProfile();
-    }, [user])
-  );
-
   const initHealth = async () => {
     setLoading(true);
-    await fetchProfile();
 
     const available = await healthService.isAvailable();
     setHealthAvailable(available);
@@ -85,42 +27,13 @@ export default function HomeScreen() {
     } else {
       const today = await healthService.getTodaySummary(); // will trigger fallback
       setSummary(today);
->>>>>>> Stashed changes
     }
     setLoading(false);
   };
 
   useEffect(() => {
-<<<<<<< Updated upstream
-    fetchTodayMetric();
-  }, [profile]);
-
-  if (!profile) return null;
-
-  const handleSimulateSync = async () => {
-    setSyncing(true);
-    try {
-      const randomSteps = Math.floor(Math.random() * 5000) + 5000;
-      const randomCalories = Math.floor(Math.random() * 200) + 200;
-      const localDate = new Date().toLocaleDateString('en-CA');
-      
-      await metricsService.upsertTodayMetrics(randomSteps, randomCalories, localDate);
-      await fetchTodayMetric();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  const steps = metric?.steps || 0;
-  const calories = metric?.active_calories || 0;
-  const stepGoal = profile.daily_step_goal || 10000;
-  const calGoal = profile.daily_calorie_goal || 500;
-  
-=======
     initHealth();
-  }, [user]);
+  }, [session?.user]);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -135,47 +48,11 @@ export default function HomeScreen() {
   const calories = summary?.activeCalories || 0;
   const stepGoal = profile?.daily_step_goal || 10000;
   const calGoal = profile?.daily_calorie_goal || 500;
->>>>>>> Stashed changes
   const percentage = Math.round((steps / stepGoal) * 100);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-<<<<<<< Updated upstream
-      <Text style={styles.greeting}>Hello, {profile.display_name || profile.username}</Text>
-      
-      <StepRing
-        steps={steps}
-        goal={stepGoal}
-        calories={calories}
-      />
-
-      <View style={styles.statsRow}>
-        <StatCard
-          label="Steps Goal"
-          value={stepGoal.toLocaleString()}
-          icon="👟"
-          color="#ffffff"
-        />
-        <StatCard
-          label="Calories Goal"
-          value={`${calGoal} kcal`}
-          icon="🔥"
-          color="#ff4444"
-        />
-      </View>
-      
-      <View style={styles.summaryBox}>
-        <Text style={styles.summaryTitle}>Daily Summary</Text>
-        <Text style={styles.summaryText}>
-          You have reached {percentage}% of your daily step goal. Keep it up!
-        </Text>
-      </View>
-
-      <TouchableOpacity style={styles.syncButton} onPress={handleSimulateSync} disabled={syncing}>
-        {syncing ? <ActivityIndicator color="#000" /> : <Text style={styles.syncButtonText}>Simulate Sync (Phase 2B)</Text>}
-      </TouchableOpacity>
-=======
-      <Text style={styles.greeting}>Hello, {profile?.display_name || 'User'}</Text>
+      <Text style={styles.greeting}>Hello, {profile?.display_name || profile?.username || 'User'}</Text>
       
       {loading ? (
         <ActivityIndicator size="large" color="#00FFcc" style={{ marginVertical: 40 }} />
@@ -219,7 +96,6 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </>
       )}
->>>>>>> Stashed changes
     </ScrollView>
   );
 }
@@ -262,14 +138,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
-<<<<<<< Updated upstream
-=======
   lastSyncedText: {
     color: '#888888',
     fontSize: 12,
     marginTop: 8,
   },
->>>>>>> Stashed changes
   syncButton: {
     backgroundColor: '#00FFcc',
     padding: 16,

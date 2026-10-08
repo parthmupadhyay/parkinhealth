@@ -8,15 +8,15 @@ import { supabase } from '../../lib/supabase';
 export default function ProfileScreen() {
   const { profile, refreshProfile } = useAuth();
   
-  const [stepGoal, setStepGoal] = useState('');
-  const [calorieGoal, setCalorieGoal] = useState('');
+  const [stepGoal, setStepGoal] = useState('10000');
+  const [calorieGoal, setCalorieGoal] = useState('500');
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
 
   useEffect(() => {
     if (profile) {
-      setStepGoal(profile.daily_step_goal.toString());
-      setCalorieGoal(profile.daily_calorie_goal.toString());
+      setStepGoal(profile.daily_step_goal?.toString() || '10000');
+      setCalorieGoal(profile.daily_calorie_goal?.toString() || '500');
     }
   }, [profile]);
 
