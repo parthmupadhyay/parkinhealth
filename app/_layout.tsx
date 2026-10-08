@@ -1,7 +1,11 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+<<<<<<< Updated upstream
 import { AuthProvider, useAuth } from '../context/AuthContext';
+=======
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
+>>>>>>> Stashed changes
 
 function RootLayoutNav() {
   const { session, isLoading } = useAuth();
@@ -14,6 +18,7 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === '(auth)';
 
     if (!session && !inAuthGroup) {
+<<<<<<< Updated upstream
       // Redirect to the sign-in page.
       router.replace('/(auth)/login');
     } else if (session && inAuthGroup) {
@@ -35,11 +40,25 @@ function RootLayoutNav() {
     </Stack>
   );
 }
+=======
+      router.replace('/(auth)/login');
+    } else if (session && inAuthGroup) {
+      router.replace('/(tabs)');
+    }
+  }, [session, isLoading, segments]);
+>>>>>>> Stashed changes
+
+  return (
+    <AuthProvider>
+      <StatusBar style="light" />
+      <RootLayoutNav />
+    </AuthProvider>
+  );
+}
 
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <StatusBar style="light" />
       <RootLayoutNav />
     </AuthProvider>
   );

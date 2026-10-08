@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import StepRing from '../../components/StepRing';
@@ -28,11 +29,69 @@ export default function HomeScreen() {
       setMetric(data as DailyMetric);
     } else {
       setMetric(null);
+=======
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import StepRing from '../../components/StepRing';
+import StatCard from '../../components/StatCard';
+import { healthService } from '../../services/health/healthService';
+import { HealthSummary, Profile } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
+import { useFocusEffect } from 'expo-router';
+
+export default function HomeScreen() {
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [summary, setSummary] = useState<HealthSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [healthAvailable, setHealthAvailable] = useState(false);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (!error && data) {
+        setProfile(data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfile();
+    }, [user])
+  );
+
+  const initHealth = async () => {
+    setLoading(true);
+    await fetchProfile();
+
+    const available = await healthService.isAvailable();
+    setHealthAvailable(available);
+    
+    if (available) {
+      await healthService.requestPermissions();
+      const today = await healthService.getTodaySummary();
+      setSummary(today);
+    } else {
+      const today = await healthService.getTodaySummary(); // will trigger fallback
+      setSummary(today);
+>>>>>>> Stashed changes
     }
     setLoading(false);
   };
 
   useEffect(() => {
+<<<<<<< Updated upstream
     fetchTodayMetric();
   }, [profile]);
 
@@ -59,10 +118,29 @@ export default function HomeScreen() {
   const stepGoal = profile.daily_step_goal || 10000;
   const calGoal = profile.daily_calorie_goal || 500;
   
+=======
+    initHealth();
+  }, [user]);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    if (healthAvailable) {
+      const today = await healthService.getTodaySummary();
+      setSummary(today);
+    }
+    setSyncing(false);
+  };
+
+  const steps = summary?.steps || 0;
+  const calories = summary?.activeCalories || 0;
+  const stepGoal = profile?.daily_step_goal || 10000;
+  const calGoal = profile?.daily_calorie_goal || 500;
+>>>>>>> Stashed changes
   const percentage = Math.round((steps / stepGoal) * 100);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+<<<<<<< Updated upstream
       <Text style={styles.greeting}>Hello, {profile.display_name || profile.username}</Text>
       
       <StepRing
@@ -96,6 +174,52 @@ export default function HomeScreen() {
       <TouchableOpacity style={styles.syncButton} onPress={handleSimulateSync} disabled={syncing}>
         {syncing ? <ActivityIndicator color="#000" /> : <Text style={styles.syncButtonText}>Simulate Sync (Phase 2B)</Text>}
       </TouchableOpacity>
+=======
+      <Text style={styles.greeting}>Hello, {profile?.display_name || 'User'}</Text>
+      
+      {loading ? (
+        <ActivityIndicator size="large" color="#00FFcc" style={{ marginVertical: 40 }} />
+      ) : (
+        <>
+          <StepRing
+            steps={steps}
+            goal={stepGoal}
+            calories={calories}
+          />
+
+          <View style={styles.statsRow}>
+            <StatCard
+              label="Steps Goal"
+              value={stepGoal.toLocaleString()}
+              icon="👟"
+              color="#ffffff"
+            />
+            <StatCard
+              label="Calories Goal"
+              value={`${calGoal} kcal`}
+              icon="🔥"
+              color="#ff4444"
+            />
+          </View>
+          
+          <View style={styles.summaryBox}>
+            <Text style={styles.summaryTitle}>Daily Summary</Text>
+            <Text style={styles.summaryText}>
+              You have reached {percentage}% of your daily step goal.
+            </Text>
+            {summary && (
+              <Text style={styles.lastSyncedText}>
+                Last Synced: {new Date(summary.lastSynced).toLocaleTimeString()}
+              </Text>
+            )}
+          </View>
+
+          <TouchableOpacity style={styles.syncButton} onPress={handleSync} disabled={syncing}>
+            {syncing ? <ActivityIndicator color="#000" /> : <Text style={styles.syncButtonText}>Sync with Health Connect</Text>}
+          </TouchableOpacity>
+        </>
+      )}
+>>>>>>> Stashed changes
     </ScrollView>
   );
 }
@@ -138,6 +262,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+<<<<<<< Updated upstream
+=======
+  lastSyncedText: {
+    color: '#888888',
+    fontSize: 12,
+    marginTop: 8,
+  },
+>>>>>>> Stashed changes
   syncButton: {
     backgroundColor: '#00FFcc',
     padding: 16,
