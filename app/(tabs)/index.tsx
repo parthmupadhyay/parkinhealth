@@ -1,101 +1,101 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import StepRing from '../../components/StepRing';
 import StatCard from '../../components/StatCard';
+import { healthService } from '../../services/health/healthService';
+import { HealthSummary, Profile } from '../../types';
 import { useAuth } from '../../context/AuthContext';
-import { metricsService } from '../../services/metricsService';
 import { supabase } from '../../lib/supabase';
-import { DailyMetric } from '../../types';
 
 export default function HomeScreen() {
-  const { profile } = useAuth();
-  const [metric, setMetric] = useState<DailyMetric | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { session, profile } = useAuth();
+  const [summary, setSummary] = useState<HealthSummary | null>(null);
+  const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [healthAvailable, setHealthAvailable] = useState(false);
 
-  const fetchTodayMetric = async () => {
-    if (!profile) return;
+  const initHealth = async () => {
     setLoading(true);
-    const localDate = new Date().toLocaleDateString('en-CA');
-    const { data, error } = await supabase
-      .from('daily_metrics')
-      .select('*')
-      .eq('user_id', profile.id)
-      .eq('local_date', localDate)
-      .single();
 
-    if (!error && data) {
-      setMetric(data as DailyMetric);
+    const available = await healthService.isAvailable();
+    setHealthAvailable(available);
+    
+    if (available) {
+      await healthService.requestPermissions();
+      const today = await healthService.getTodaySummary();
+      setSummary(today);
     } else {
-      setMetric(null);
+      const today = await healthService.getTodaySummary(); // will trigger fallback
+      setSummary(today);
     }
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchTodayMetric();
-  }, [profile]);
+    initHealth();
+  }, [session?.user]);
 
-  if (!profile) return null;
-
-  const handleSimulateSync = async () => {
+  const handleSync = async () => {
     setSyncing(true);
-    try {
-      const randomSteps = Math.floor(Math.random() * 5000) + 5000;
-      const randomCalories = Math.floor(Math.random() * 200) + 200;
-      const localDate = new Date().toLocaleDateString('en-CA');
-      
-      await metricsService.upsertTodayMetrics(randomSteps, randomCalories, localDate);
-      await fetchTodayMetric();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setSyncing(false);
+    if (healthAvailable) {
+      const today = await healthService.getTodaySummary();
+      setSummary(today);
     }
+    setSyncing(false);
   };
 
-  const steps = metric?.steps || 0;
-  const calories = metric?.active_calories || 0;
-  const stepGoal = profile.daily_step_goal || 10000;
-  const calGoal = profile.daily_calorie_goal || 500;
-  
+  const steps = summary?.steps || 0;
+  const calories = summary?.activeCalories || 0;
+  const stepGoal = profile?.daily_step_goal || 10000;
+  const calGoal = profile?.daily_calorie_goal || 500;
   const percentage = Math.round((steps / stepGoal) * 100);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.greeting}>Hello, {profile.display_name || profile.username}</Text>
+      <Text style={styles.greeting}>Hello, {profile?.display_name || profile?.username || 'User'}</Text>
       
-      <StepRing
-        steps={steps}
-        goal={stepGoal}
-        calories={calories}
-      />
+      {loading ? (
+        <ActivityIndicator size="large" color="#00FFcc" style={{ marginVertical: 40 }} />
+      ) : (
+        <>
+          <StepRing
+            steps={steps}
+            goal={stepGoal}
+            calories={calories}
+          />
 
-      <View style={styles.statsRow}>
-        <StatCard
-          label="Steps Goal"
-          value={stepGoal.toLocaleString()}
-          icon="👟"
-          color="#ffffff"
-        />
-        <StatCard
-          label="Calories Goal"
-          value={`${calGoal} kcal`}
-          icon="🔥"
-          color="#ff4444"
-        />
-      </View>
-      
-      <View style={styles.summaryBox}>
-        <Text style={styles.summaryTitle}>Daily Summary</Text>
-        <Text style={styles.summaryText}>
-          You have reached {percentage}% of your daily step goal. Keep it up!
-        </Text>
-      </View>
+          <View style={styles.statsRow}>
+            <StatCard
+              label="Steps Goal"
+              value={stepGoal.toLocaleString()}
+              icon="👟"
+              color="#ffffff"
+            />
+            <StatCard
+              label="Calories Goal"
+              value={`${calGoal} kcal`}
+              icon="🔥"
+              color="#ff4444"
+            />
+          </View>
+          
+          <View style={styles.summaryBox}>
+            <Text style={styles.summaryTitle}>Daily Summary</Text>
+            <Text style={styles.summaryText}>
+              You have reached {percentage}% of your daily step goal.
+            </Text>
+            {summary && (
+              <Text style={styles.lastSyncedText}>
+                Last Synced: {new Date(summary.lastSynced).toLocaleTimeString()}
+              </Text>
+            )}
+          </View>
 
-      <TouchableOpacity style={styles.syncButton} onPress={handleSimulateSync} disabled={syncing}>
-        {syncing ? <ActivityIndicator color="#000" /> : <Text style={styles.syncButtonText}>Simulate Sync (Phase 2B)</Text>}
-      </TouchableOpacity>
+          <TouchableOpacity style={styles.syncButton} onPress={handleSync} disabled={syncing}>
+            {syncing ? <ActivityIndicator color="#000" /> : <Text style={styles.syncButtonText}>Sync with Health Connect</Text>}
+          </TouchableOpacity>
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -137,6 +137,11 @@ const styles = StyleSheet.create({
     color: '#dddddd',
     fontSize: 14,
     lineHeight: 20,
+  },
+  lastSyncedText: {
+    color: '#888888',
+    fontSize: 12,
+    marginTop: 8,
   },
   syncButton: {
     backgroundColor: '#00FFcc',

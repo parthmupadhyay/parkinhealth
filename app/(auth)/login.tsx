@@ -36,9 +36,11 @@ export default function LoginScreen() {
         placeholder="Email"
         placeholderTextColor="#888"
         autoCapitalize="none"
+        keyboardType="email-address"
         value={email}
         onChangeText={setEmail}
       />
+      
       <TextInput
         style={styles.input}
         placeholder="Password"
@@ -57,7 +59,7 @@ export default function LoginScreen() {
       </TouchableOpacity>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Don&apos;t have an account? </Text>
+        <Text style={styles.footerText}>Don't have an account? </Text>
         <Link href="/(auth)/register" asChild>
           <TouchableOpacity>
             <Text style={styles.link}>Sign Up</Text>

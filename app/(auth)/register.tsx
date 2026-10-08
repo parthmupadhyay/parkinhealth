@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { Link } from 'expo-router';
 import { authService } from '../../services/authService';
 
@@ -28,7 +28,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Create Account</Text>
       
       {errorMsg ? <Text style={styles.error}>{errorMsg}</Text> : null}
@@ -52,6 +52,7 @@ export default function RegisterScreen() {
         style={styles.input}
         placeholder="Email"
         placeholderTextColor="#888"
+        keyboardType="email-address"
         autoCapitalize="none"
         value={email}
         onChangeText={setEmail}
@@ -81,13 +82,13 @@ export default function RegisterScreen() {
           </TouchableOpacity>
         </Link>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     padding: 24,
     justifyContent: 'center',
     backgroundColor: '#121212',
